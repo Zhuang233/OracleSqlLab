@@ -1,0 +1,114 @@
+-- 1．查询选修1号课程的学生学号与姓名。
+SELECT S.SNO,SNAME FROM S,SC WHERE S.SNO=SC.SNO AND CNO=1;
+
+-- 2．查询选修课程名为数据库DB的学生学号与姓名。
+SELECT S.SNO,SNAME 
+FROM S,SC,C 
+WHERE S.SNO=SC.SNO AND SC.CNO=C.CNO AND C.CNAME='DB';
+
+-- 3．查询不选1号课程的学生学号与姓名。
+SELECT S.SNO, S.SNAME
+FROM S
+WHERE NOT EXISTS(SELECT * FROM SC WHERE S.SNO = SC.SNO AND SC.CNO = 1);
+
+-- 4．查询学习全部课程学生姓名。
+SELECT S.SNAME
+FROM S
+WHERE NOT EXISTS(
+    --他没选的课
+    SELECT * FROM C WHERE NOT EXISTS(
+        --他选了
+        SELECT * FROM SC WHERE S.SNO = SC.SNO AND SC.CNO = C.CNO
+    ) 
+);
+
+-- 5．查询所有学生除了选修1号课程外所有成绩均及格的学生的学号和平均成绩，其结果按平均成绩的降序排列。
+SELECT SNO, AVG(GRADE) AVG
+FROM SC SCX
+GROUP BY SNO HAVING 60<=ALL(SELECT GRADE FROM SC SCY WHERE SCY.CNO!=1 AND SCY.SNO = SCX.SNO)
+ORDER BY AVG DESC;
+
+-- 6．查询选修数据库DB成绩第2名的学生姓名。
+SELECT SNAME
+FROM S 
+JOIN SC ON S.SNO = SC.SNO
+JOIN C ON SC.CNO = C.CNO
+WHERE CNAME = 'DB'
+ORDER BY GRADE DESC
+OFFSET 1 ROW FETCH NEXT 1 ROW ONLY;
+
+-- 7. 查询所有3个学分课程中有3门以上（含3门）课程获80分以上（含80分）的学生的姓名。
+SELECT SNAME FROM S
+WHERE S.SNO IN(
+    SELECT SC.SNO
+    FROM SC
+    JOIN C ON SC.CNO = C.CNO AND CCREDIT=3
+    WHERE GRADE>=80
+    GROUP BY SC.SNO HAVING 3<=COUNT(*)
+);
+
+-- 8. 查询选课门数唯一（即与其他同学选修课程数目都不同）的学生的学号。
+SELECT SNO
+FROM SC SCX
+GROUP BY SNO 
+HAVING COUNT(*) NOT IN(
+    --其他同学选修课程数目
+    SELECT COUNT(*)
+    FROM SC SCY
+    GROUP BY SCY.SNO
+    HAVING SCY.SNO!=SCX.SNO
+);
+-- 9．找出平均成绩大于80的学生学号及其平均成绩，按学号正序、平均成绩逆序排序；
+SELECT SNO, AVG(GRADE) AVG
+FROM SC
+GROUP BY SNO 
+HAVING 80<AVG(GRADE)
+ORDER BY SNO, AVG(GRADE) DESC;
+
+-- 10. 找出各课程考试成绩80分以上的学生的数量及课程号；
+SELECT CNO,COUNT(*) COUNT
+FROM SC
+WHERE GRADE > 80
+GROUP BY CNO;
+
+-- 11. 找出选修平均分最高的学生选课信息；
+SELECT SC.* 
+FROM SC JOIN (
+    -- 选修平均分最高的学号
+    SELECT SNO
+    FROM SC
+    GROUP BY SNO
+    ORDER BY AVG(GRADE) DESC
+    OFFSET 0 ROW FETCH NEXT 1 ROW ONLY
+) AVG_TOP ON AVG_TOP.SNO=SC.SNO;
+
+-- 12. 找出选修平均分第二高的学生选课信息；
+SELECT SC.* 
+FROM SC JOIN (
+    -- 选修平均分第二高的学号
+    SELECT SNO
+    FROM SC
+    GROUP BY SNO
+    ORDER BY AVG(GRADE) DESC
+    OFFSET 1 ROW FETCH NEXT 1 ROW ONLY
+) AVG_TOP ON AVG_TOP.SNO=SC.SNO;
+
+
+
+-- 测试语句------------------------------------------------
+SELECT * from S;
+SELECT * from C;
+SELECT * from SC;
+
+--笛卡尔积
+SELECT * FROM S,SC;
+
+-- 等值连接
+SELECT * FROM S JOIN SC ON S.SNO = SC.SNO;
+SELECT * FROM S,SC WHERE S.SNO = SC.SNO;
+
+-- 选择结果的元组范围
+SELECT * FROM SC
+OFFSET 2 ROW FETCH NEXT 3 ROW ONLY;
+
+

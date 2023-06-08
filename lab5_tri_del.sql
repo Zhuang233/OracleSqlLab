@@ -1,0 +1,42 @@
+-- 1．把1号课程的非空成绩提高10％（建立触发器，当所更新成绩超过100分时设置成100）。
+CREATE OR REPLACE TRIGGER grade_up
+BEFORE UPDATE OF GRADE ON SC
+FOR EACH ROW
+WHEN (NEW.GRADE > 100)
+BEGIN
+    :NEW.GRADE := 100;
+END;
+/
+
+SELECT * FROM SC;
+
+UPDATE SC
+SET GRADE = GRADE*1.1
+WHERE SC.CNO IS NOT NULL;
+
+SELECT * FROM SC;
+
+-- 2．在SC表中删除课程名为数据库DB的成绩的元组。
+DELETE FROM SC
+WHERE EXISTS(
+    SELECT * FROM C
+    WHERE SC.CNO = C.CNO AND c.CNAME = 'DB'
+    )
+;
+
+SELECT * FROM SC;
+
+-- 3．在S和SC表中删除学号为121的所有数据（分是否使用cascade两种方式实现）。
+-- 不使用cascade
+DELETE FROM SC
+WHERE SNO = 121;
+
+DELETE FROM S
+WHERE SNO = 121;
+
+-- 使用cascade
+DELETE FROM S CASCADE
+WHERE SNO = 121;
+
+SELECT * FROM S;
+SELECT * FROM SC;
